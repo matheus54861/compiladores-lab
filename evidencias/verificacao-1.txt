@@ -1,0 +1,28 @@
+
+══ Entrega 1 ══
+  ok   ./compilar existe e e executavel
+  ok   ./executar existe e e executavel
+  ok   --tokens de 01-fatorial
+  ok   --tokens de 02-fibonacci
+  ok   --tokens de 03-precedencia
+  ok   --tokens de 04-divisao
+  ok   --tokens de 05-tipos
+  ok   --tokens de 06-escopo
+  ok   --tokens de 07-logica
+  ok   --tokens de 08-texto
+  ok   --tokens de 09-mutua
+  ok   --tokens de 10-primos
+  --   recusa lex-01-escape (espera: a analise sintatica)
+  ok   recusa lex-02-comentario
+  ok   recusa lex-03-ponto-depois
+  ok   recusa lex-04-ponto-antes
+  ok   recusa lex-05-texto-aberto
+  ok   recusa lex-06-caractere
+  ok   --tokens funciona apesar de erro de sintaxe
+  ok   a saida nao comeca com BOM
+Entrega 1: 19 de 20 provas passaram; 1 esperam codigo que ainda nao existe.
+
+▸ Por onde comecar
+  Falta escrever: a analise sintatica — 1 prova(s) dependem dela.
+  Escreva em mplc/sintatico.py. Leia antes: LINGUAGEM.md secoes 3 a 5 e CONTRATOS.md secao 3
+  O enunciado completo esta em entregas/E1.md
