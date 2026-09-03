@@ -4,12 +4,12 @@ Entrega 1 — analise lexica.
 Transformar o texto do programa numa lista de tokens.
 
 O que voces tem que devolver: uma lista de Token. O ultimo elemento e sempre
-um token FIM_ARQUIVO. A regra de posicao dele esta em CONTRATOS.md, secao 7.
+um token FIM_ARQUIVO. A regra de posicao dela esta em CONTRATOS.md, secao 7.
 
 Leiam antes: LINGUAGEM.md secao 2, e CONTRATOS.md secao 2.
 """
-from mplc.erros import NaoImplementado
-
+import sys
+import re
 
 class Token:
     __slots__ = ('tipo', 'lexema', 'linha', 'coluna')
@@ -27,4 +27,107 @@ class Token:
 
 def analisar(fonte):
     """Recebe o texto do programa. Devolve a lista de Token."""
-    raise NaoImplementado('a analise lexica (Entrega 1)')
+    regras = [
+        ('COMENTARIO_BLOCO', r'/\*[\s\S]*?\*/'),
+        ('COMENTARIO_BLOCO_ERRO', r'/\*[\s\S]*'),
+        ('COMENTARIO_LINHA', r'//.*'),
+        ('LIT_REAL', r'\b\d+\.\d+\b'),
+        ('LIT_INTEIRO', r'\b\d+\b'),
+        ('LIT_TEXTO', r'"(?:\\.|[^"\\])*"'),
+        ('LIT_TEXTO_ERRO', r'"[^"\n]*'),
+        ('RESERVADA_FUNCAO', r'\bfuncao\b'),
+        ('RESERVADA_RETORNE', r'\bretorne\b'),
+        ('RESERVADA_SE', r'\bse\b'),
+        ('RESERVADA_SENAO', r'\bsenao\b'),
+        ('RESERVADA_ENQUANTO', r'\benquanto\b'),
+        ('RESERVADA_ESCREVA', r'\bescreva\b'),
+        ('TIPO_INTEIRO', r'\binteiro\b'),
+        ('TIPO_REAL', r'\breal\b'),
+        ('TIPO_LOGICO', r'\blogico\b'),
+        ('TIPO_TEXTO', r'\btexto\b'),
+        ('TIPO_VAZIO', r'\bvazio\b'),
+        ('LOGICO_VALOR', r'\b(verdadeiro|falso)\b'),
+        ('E', r'\be\b'),
+        ('OU', r'\bou\b'),
+        ('NAO', r'\bnao\b'),
+        ('ID', r'\b[a-zA-Z_][a-zA-Z0-9_]*\b'),
+        ('IGUAL', r'=='),
+        ('DIFERENTE', r'!='),
+        ('MENOR_IGUAL', r'<='),
+        ('MAIOR_IGUAL', r'>='),
+        ('ATRIBUI', r'='),
+        ('MAIS', r'\+'),
+        ('MENOS', r'-'),
+        ('VEZES', r'\*'),
+        ('DIVIDE', r'/'),
+        ('RESTO', r'%'),
+        ('MENOR', r'<'),
+        ('MAIOR', r'>'),
+        ('ABRE_PAR', r'\('),
+        ('FECHA_PAR', r'\)'),
+        ('ABRE_CHAVE', r'\{'),
+        ('FECHA_CHAVE', r'\}'),
+        ('VIRGULA', r','),
+        ('PONTO_VIRGULA', r';'),
+        ('NOVA_LINHA', r'\n'),
+        ('ESPACO', r'[ \t\r]+'),
+        ('ERRO_PONTO', r'\.\d+|\d+\.'),
+        ('ERRO', r'.')
+    ]
+
+    regex_combinada = '|'.join(f'(?P<{nome}>{padrao})' for nome, padrao in regras)
+    scanner = re.compile(regex_combinada)
+
+    linha_atual = 1
+    inicio_linha = 0
+    tokens = []
+
+    for match in scanner.finditer(fonte):
+        tipo = match.lastgroup
+        valor = match.group(tipo)
+        coluna = (match.start() - inicio_linha) + 1
+
+        if tipo == 'NOVA_LINHA':
+            linha_atual += 1
+            inicio_linha = match.end()
+            continue
+        elif tipo == 'ESPACO' or tipo == 'COMENTARIO_LINHA':
+            continue
+        elif tipo == 'COMENTARIO_BLOCO':
+            quebras = valor.count('\n')
+            if quebras > 0:
+                linha_atual += quebras
+                inicio_linha = match.start() + valor.rfind('\n') + 1
+            continue
+        elif tipo == 'COMENTARIO_BLOCO_ERRO':
+            print(f"erro lexico: linha {linha_atual}, coluna {coluna}: comentario de bloco nao fechado", file=sys.stderr)
+            sys.exit(1)
+        elif tipo == 'LIT_TEXTO_ERRO':
+            print(f"erro lexico: linha {linha_atual}, coluna {coluna}: texto nao fechado", file=sys.stderr)
+            sys.exit(1)
+        elif tipo == 'ERRO' or tipo == 'ERRO_PONTO':
+            print(f"erro lexico: linha {linha_atual}, coluna {coluna}: caractere inesperado '{valor}'", file=sys.stderr)
+            sys.exit(1)
+
+        # Mapeamento de tipos para o contrato
+        if tipo.startswith('RESERVADA_'):
+            tipo_token = tipo.replace('RESERVADA_', '')
+        elif tipo == 'LOGICO_VALOR':
+            tipo_token = 'LOGICO'
+        elif tipo.startswith('TIPO_'):
+            tipo_token = tipo
+        elif tipo == 'LIT_INTEIRO':
+            tipo_token = 'INTEIRO'
+        elif tipo == 'LIT_REAL':
+            tipo_token = 'REAL'
+        elif tipo == 'LIT_TEXTO':
+            tipo_token = 'TEXTO'
+        else:
+            tipo_token = tipo
+
+        tokens.append(Token(tipo_token, valor, linha_atual, coluna))
+
+    # FIM_ARQUIVO
+    ultima_linha = linha_atual
+    tokens.append(Token('FIM_ARQUIVO', '', ultima_linha, 1))
+    return tokens
