@@ -60,7 +60,7 @@ class Parser:
 
     def parse(self):
         funcoes = []
-        while self.atual() is not None:
+        while self.atual() is not None and self.atual().tipo != "FIM_ARQUIVO":
             if self.proximo_tipo("FUNCAO"):
                 funcoes.append(self.funcao())
             else:
@@ -74,15 +74,28 @@ class Parser:
 
     def funcao(self):
         t_func = self.consome("FUNCAO")
-        
         t_tipo = self.atual()
+        
+        # Em sin-06, temos: funcao principal()
+        # O tipo de retorno falta. O token atual é "principal" (coluna 8).
+        # Se a seguir vier "(", significa que o nome da função foi colocado onde deveria estar o tipo, ou omitiu-se o tipo.
+        # Vamos verificar se o token após o atual (ou o atual se for "(") indica falta de tipo.
+        # Na verdade, se o próximo token for "(", o token atual ("principal") é o nome da função, logo o tipo está em falta na posição do token atual!
+        # Vamos inspecionar o token seguinte:
+        # Se o token atual for um ID e o *seguinte* for ABRE_PAR, então o tipo de retorno está omitido e o erro deve ser no token atual (principal, coluna 8).
+        
+        # Vamos testar explicitamente:
+        next_t = self.tokens[self.pos + 1] if self.pos + 1 < len(self.tokens) else None
+        if t_tipo and next_t and next_t.tipo == "ABRE_PAR":
+            raise ErroSintatico(t_tipo.linha, t_tipo.coluna, "tipo de retorno esperado")
+
+        if t_tipo and t_tipo.tipo == "ABRE_PAR":
+            raise ErroSintatico(t_tipo.linha, t_tipo.coluna, "tipo de retorno esperado")
+
         if t_tipo and (t_tipo.tipo in ("TIPO", "INTEIRO", "REAL", "VAZIO", "ID") or t_tipo.lexema in ("inteiro", "real", "vazio", "texto", "logico")):
             self.consome()
         else:
-            t = self.atual()
-            linha = t.linha if t else t_func.linha
-            coluna = t.coluna if t else t_func.coluna
-            raise ErroSintatico(linha, coluna, "tipo de retorno esperado")
+            raise ErroSintatico(t_tipo.linha if t_tipo else t_func.linha, t_tipo.coluna if t_tipo else t_func.coluna, "tipo de retorno esperado")
 
         t_nome = self.consome("ID")
         
@@ -96,14 +109,14 @@ class Parser:
         self.consome("FECHA_PAR")
         
         bloco = self.bloco()
-        rotulo = f"funcao {t_tipo.lexema} {t_nome.lexema}"
+        rotulo = f"funcao {t_nome.lexema} {t_tipo.lexema}"
         filhos = [No("parametros", parametros, linha=t_nome.linha, coluna=t_nome.coluna), bloco]
         return No(rotulo, filhos, linha=t_func.linha, coluna=t_func.coluna)
 
     def parametro(self):
         t_tipo = self.consome()
         t_nome = self.consome("ID")
-        return No(f"parametro {t_tipo.lexema} {t_nome.lexema}", linha=t_tipo.linha, coluna=t_tipo.coluna)
+        return No(f"parametro {t_nome.lexema} {t_tipo.lexema}", linha=t_tipo.linha, coluna=t_tipo.coluna)
 
     def bloco(self):
         t_ch = self.consome("ABRE_CHAVE")
@@ -129,7 +142,7 @@ class Parser:
                 self.consome("ATRIBUI")
                 filhos.append(self.expressao())
             self.consome("PONTO_VIRGULA")
-            return No(f"declaracao {tipo_token.lexema} {id_token.lexema}", filhos, linha=id_token.linha, coluna=id_token.coluna)
+            return No(f"declaracao {id_token.lexema} {tipo_token.lexema}", filhos, linha=id_token.linha, coluna=id_token.coluna)
 
         elif t.tipo == "SE":
             self.consome("SE")
@@ -269,7 +282,8 @@ class Parser:
             return No(f"literal inteiro {tok.lexema}", linha=tok.linha, coluna=tok.coluna)
         elif t.tipo in ("NUM_REAL", "REAL") or t.tipo == "NUM_REAL":
             tok = self.consome()
-            return No(f"literal real {tok.lexema}", linha=tok.linha, coluna=tok.coluna)
+            valor_real = f"{float(tok.lexema):.6f}"
+            return No(f"literal real {valor_real}", linha=tok.linha, coluna=tok.coluna)
         elif t.tipo in ("STRING", "TEXTO"):
             tok = self.consome()
             return No(f"literal texto {tok.lexema}", linha=tok.linha, coluna=tok.coluna)
