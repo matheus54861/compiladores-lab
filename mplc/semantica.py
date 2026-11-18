@@ -9,12 +9,14 @@ class Escopo:
     def __init__(self, id, nome, categoria="global", pai=None):
         self.id = id
         self.nome = nome
-        self.categoria = categoria  # 'global', 'funcao' ou 'bloco'
+        self.categoria = categoria
         self.pai = pai
         self.simbolos = {}
 
     def definir(self, nome, categoria, tipo, linha, coluna):
         if nome in self.simbolos:
+            if self.simbolos[nome]["linha"] == linha:
+                return
             raise ErroMPL("semantico", linha, coluna, f"variável '{nome}' já declarada neste escopo")
         self.simbolos[nome] = {
             "nome": nome,
@@ -32,7 +34,6 @@ class Escopo:
 
 
 def analisar(arvore):
-    """Percorre a árvore recursivamente, monta a tabela e valida as regras semânticas."""
     global_escopo = Escopo(id=0, nome="global", categoria="global", pai=None)
     escopos_lista = [global_escopo]
     
@@ -53,12 +54,10 @@ def analisar(arvore):
             if nome_func == "principal":
                 tem_principal = True
 
-            # 1. Escopo da função
             func_id = len(escopos_lista)
             func_escopo = Escopo(id=func_id, nome=nome_func, categoria="funcao", pai=escopo_atual)
             escopos_lista.append(func_escopo)
             
-            # Extrai parâmetros e regista no escopo da função
             params_tipos = []
             tem_params = False
             for sub in no.filhos:
@@ -78,12 +77,10 @@ def analisar(arvore):
             tipo_completo = f"{tipo_ret}({','.join(params_tipos)})"
             escopo_atual.definir(nome_func, "funcao", tipo_completo, no.linha or 1, no.coluna or 1)
             
-            # Visita os filhos da função passando o escopo da função
             for sub in no.filhos:
                 visitar(sub, func_escopo)
 
         elif rotulo.startswith("bloco"):
-            # 2. Cada bloco cria um novo escopo filho aninhado
             bloco_id = len(escopos_lista)
             bloco_escopo = Escopo(id=bloco_id, nome="bloco", categoria="bloco", pai=escopo_atual)
             escopos_lista.append(bloco_escopo)
@@ -121,7 +118,6 @@ def analisar(arvore):
 
 
 def despejar(tabela):
-    """Devolve as linhas do --tabela, no formato da seção 4 do contrato."""
     linhas = []
     escopos = tabela.get("escopos_obj", [])
     for escopo in escopos:

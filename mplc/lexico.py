@@ -15,13 +15,12 @@ class Token:
     __slots__ = ('tipo', 'lexema', 'linha', 'coluna')
 
     def __init__(self, tipo, lexema, linha, coluna):
-        self.tipo = tipo          # 'ID', 'INTEIRO', 'MAIS', ... (a lista esta no contrato)
+        self.tipo = tipo          # 'ID', 'INTEIRO', 'MAIS', ...
         self.lexema = lexema      # o texto exato como apareceu no fonte
         self.linha = linha
         self.coluna = coluna      # a coluna do PRIMEIRO caractere do token
 
     def __str__(self):
-        # esta e a linha que o --tokens imprime; nao mexam no formato
         return f"{self.linha},{self.coluna},{self.tipo},{self.lexema}"
 
 
@@ -33,7 +32,8 @@ def analisar(fonte):
         ('COMENTARIO_LINHA', r'//.*'),
         ('LIT_REAL', r'\b\d+\.\d+\b'),
         ('LIT_INTEIRO', r'\b\d+\b'),
-        ('LIT_TEXTO', r'"(?:\\.|[^"\\])*"'),
+        ('LIT_TEXTO', r'"(?:\\.|[^"\n\\])*"'),
+        ('LIT_TEXTO_ERRO_NL', r'"[^"\n]*\n'),
         ('LIT_TEXTO_ERRO', r'"[^"\n]*'),
         ('RESERVADA_FUNCAO', r'\bfuncao\b'),
         ('RESERVADA_RETORNE', r'\bretorne\b'),
@@ -50,7 +50,7 @@ def analisar(fonte):
         ('E', r'\be\b'),
         ('OU', r'\bou\b'),
         ('NAO', r'\bnao\b'),
-        ('ID', r'\b[a-zA-Z_][a-zA-Z0-9_]*\b'),
+        ('ID', r'\b[a-zA-Z_À-ÿ][a-zA-Z0-9_À-ÿ]*\b'),
         ('IGUAL', r'=='),
         ('DIFERENTE', r'!='),
         ('MENOR_IGUAL', r'<='),
@@ -102,14 +102,13 @@ def analisar(fonte):
         elif tipo == 'COMENTARIO_BLOCO_ERRO':
             print(f"erro lexico: linha {linha_atual}, coluna {coluna}: comentario de bloco nao fechado", file=sys.stderr)
             sys.exit(1)
-        elif tipo == 'LIT_TEXTO_ERRO':
+        elif tipo == 'LIT_TEXTO_ERRO_NL' or tipo == 'LIT_TEXTO_ERRO':
             print(f"erro lexico: linha {linha_atual}, coluna {coluna}: texto nao fechado", file=sys.stderr)
             sys.exit(1)
         elif tipo == 'ERRO' or tipo == 'ERRO_PONTO':
             print(f"erro lexico: linha {linha_atual}, coluna {coluna}: caractere inesperado '{valor}'", file=sys.stderr)
             sys.exit(1)
 
-        # Mapeamento de tipos para o contrato
         if tipo.startswith('RESERVADA_'):
             tipo_token = tipo.replace('RESERVADA_', '')
         elif tipo == 'LOGICO_VALOR':
@@ -127,7 +126,5 @@ def analisar(fonte):
 
         tokens.append(Token(tipo_token, valor, linha_atual, coluna))
 
-    # FIM_ARQUIVO
-    ultima_linha = linha_atual
-    tokens.append(Token('FIM_ARQUIVO', '', ultima_linha, 1))
+    tokens.append(Token('FIM_ARQUIVO', '', linha_atual, 1))
     return tokens
