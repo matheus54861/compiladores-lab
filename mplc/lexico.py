@@ -35,22 +35,22 @@ def analisar(fonte):
         ('LIT_TEXTO', r'"(?:\\.|[^"\n\\])*"'),
         ('LIT_TEXTO_ERRO_NL', r'"[^"\n]*\n'),
         ('LIT_TEXTO_ERRO', r'"[^"\n]*'),
-        ('RESERVADA_FUNCAO', r'\bfuncao\b'),
-        ('RESERVADA_RETORNE', r'\bretorne\b'),
-        ('RESERVADA_SE', r'\bse\b'),
-        ('RESERVADA_SENAO', r'\bsenao\b'),
-        ('RESERVADA_ENQUANTO', r'\benquanto\b'),
-        ('RESERVADA_ESCREVA', r'\bescreva\b'),
-        ('TIPO_INTEIRO', r'\binteiro\b'),
-        ('TIPO_REAL', r'\breal\b'),
-        ('TIPO_LOGICO', r'\blogico\b'),
-        ('TIPO_TEXTO', r'\btexto\b'),
-        ('TIPO_VAZIO', r'\bvazio\b'),
-        ('LOGICO_VALOR', r'\b(verdadeiro|falso)\b'),
-        ('E', r'\be\b'),
-        ('OU', r'\bou\b'),
-        ('NAO', r'\bnao\b'),
-        ('ID', r'\b[a-zA-Z_À-ÿ][a-zA-Z0-9_À-ÿ]*\b'),
+        ('RESERVADA_FUNCAO', r'\bfuncao(?![A-Za-z0-9_])'),
+        ('RESERVADA_RETORNE', r'\bretorne(?![A-Za-z0-9_])'),
+        ('RESERVADA_SE', r'\bse(?![A-Za-z0-9_])'),
+        ('RESERVADA_SENAO', r'\bsenao(?![A-Za-z0-9_])'),
+        ('RESERVADA_ENQUANTO', r'\benquanto(?![A-Za-z0-9_])'),
+        ('RESERVADA_ESCREVA', r'\bescreva(?![A-Za-z0-9_])'),
+        ('TIPO_INTEIRO', r'\binteiro(?![A-Za-z0-9_])'),
+        ('TIPO_REAL', r'\breal(?![A-Za-z0-9_])'),
+        ('TIPO_LOGICO', r'\blogico(?![A-Za-z0-9_])'),
+        ('TIPO_TEXTO', r'\btexto(?![A-Za-z0-9_])'),
+        ('TIPO_VAZIO', r'\bvazio(?![A-Za-z0-9_])'),
+        ('LOGICO_VALOR', r'\b(verdadeiro|falso)(?![A-Za-z0-9_])'),
+        ('E', r'\be(?![A-Za-z0-9_])'),
+        ('OU', r'\bou(?![A-Za-z0-9_])'),
+        ('NAO', r'\bnao(?![A-Za-z0-9_])'),
+        ('ID', r'\b[a-zA-Z_][a-zA-Z0-9_]*(?![A-Za-z0-9_])'),
         ('IGUAL', r'=='),
         ('DIFERENTE', r'!='),
         ('MENOR_IGUAL', r'<='),
@@ -105,6 +105,16 @@ def analisar(fonte):
         elif tipo == 'LIT_TEXTO_ERRO_NL' or tipo == 'LIT_TEXTO_ERRO':
             print(f"erro lexico: linha {linha_atual}, coluna {coluna}: texto nao fechado", file=sys.stderr)
             sys.exit(1)
+        elif tipo == 'LIT_TEXTO':
+            i = 1
+            while i < len(valor) - 1:
+                if valor[i] == '\\':
+                    if valor[i + 1] not in 'nt"\\':
+                        print(f"erro lexico: linha {linha_atual}, coluna {coluna + i}: escape invalido", file=sys.stderr)
+                        sys.exit(1)
+                    i += 2
+                else:
+                    i += 1
         elif tipo == 'ERRO' or tipo == 'ERRO_PONTO':
             print(f"erro lexico: linha {linha_atual}, coluna {coluna}: caractere inesperado '{valor}'", file=sys.stderr)
             sys.exit(1)
@@ -126,5 +136,5 @@ def analisar(fonte):
 
         tokens.append(Token(tipo_token, valor, linha_atual, coluna))
 
-    tokens.append(Token('FIM_ARQUIVO', '', linha_atual, 1))
+    tokens.append(Token('FIM_ARQUIVO', '', linha_atual, (len(fonte) - inicio_linha) + 1))
     return tokens
