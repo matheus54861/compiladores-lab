@@ -96,7 +96,7 @@ def analisar(arvore):
             for sub in no.filhos:
                 visitar(sub, escopo_atual)
 
-        elif rotulo.startswith("identificador"):
+        elif rotulo.startswith("variavel"):
             i_nome = no.extra.get('nome') or rotulo.split()[-1]
             if not escopo_atual.buscar(i_nome):
                 raise ErroMPL("semantico", no.linha or 1, no.coluna or 1, f"variável '{i_nome}' não declarada")
