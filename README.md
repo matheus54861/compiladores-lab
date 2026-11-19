@@ -4,6 +4,9 @@ Trabalho semestral desenvolvido para a disciplina de Compiladores do curso de Ci
 
 ## Integrantes do Grupo
 - Matheus Pereira Marques
+- Thiago dos Santos Castro
+- Henrique Ribeiro Bonafim
+- Lucas de Oliveira Nascimento
 
 ---
 
